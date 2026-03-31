@@ -35,14 +35,14 @@ export default async function Home() {
     .gte('date_time', `${today}T00:00:00`)
     .lte('date_time', `${today}T23:59:59`);
 
-  // 1.1 Get today's actual sessions for the list
+  // 1.1 Get upcoming actual sessions for the list (Starting from now)
+  const nowUtc = new Date().toISOString();
   const { data: upcomingSessions } = await supabase
     .from('appointments')
     .select('*, patients(*)')
-    .gte('date_time', `${today}T00:00:00`)
-    .lte('date_time', `${today}T23:59:59`)
+    .gte('date_time', nowUtc)
     .order('date_time', { ascending: true })
-    .limit(3);
+    .limit(5);
 
   // 2. Get total active patients
   const { count: totalPatients } = await supabase

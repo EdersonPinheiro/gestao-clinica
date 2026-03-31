@@ -15,7 +15,7 @@ export function SessionList({ sessions = [] }: SessionListProps) {
                     <div>
                         <h2 className="text-lg font-bold text-zinc-900">Próximas Sessões</h2>
                         <p className="text-sm text-zinc-500">
-                            {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
+                            Próximos agendamentos
                         </p>
                     </div>
                 </div>
@@ -31,8 +31,8 @@ export function SessionList({ sessions = [] }: SessionListProps) {
             <div className="flex items-end justify-between">
                 <div>
                     <h2 className="text-lg font-bold text-zinc-900">Próximas Sessões</h2>
-                    <p className="text-sm text-zinc-500 capitalize">
-                        {format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}
+                    <p className="text-sm text-zinc-500">
+                        Próximos agendamentos confirmados
                     </p>
                 </div>
                 <Link href="/agenda" className="text-sm font-medium text-blue-600 hover:text-blue-700">
@@ -45,6 +45,8 @@ export function SessionList({ sessions = [] }: SessionListProps) {
                     // Adapt Supabase data to UI
                     const patientName = session.patients?.name || "Paciente Desconhecido";
                     const initials = patientName.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase();
+                    
+                    const sessionDateStr = session.date_time ? new Date(session.date_time).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : "--/--";
                     const time = session.date_time ? new Date(session.date_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : "--:--";
                     const isOnline = session.type === 'online';
 
@@ -70,7 +72,7 @@ export function SessionList({ sessions = [] }: SessionListProps) {
                                         <div className="flex items-center gap-1">
                                             <Clock size={14} />
                                             <span>
-                                                {time} • {session.duration_minutes || 50}min
+                                                {sessionDateStr} • {time} • {session.duration_minutes || 50}min
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-1">

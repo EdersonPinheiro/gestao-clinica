@@ -301,6 +301,37 @@ export default function PatientProfilePage({ params }: PatientProfilePageProps) 
                                 </div>
                             </div>
                         </div>
+
+                        {/* Informações de Saúde da Ficha */}
+                        <div className="bg-white rounded-3xl border border-zinc-100 p-6 shadow-sm">
+                            <h3 className="font-bold text-zinc-900 mb-4 flex items-center gap-2">
+                                <FileText size={20} className="text-pink-500" />
+                                Informações de Saúde
+                            </h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">Alergias</p>
+                                    <p className="text-sm text-zinc-700">{patient.allergies || "Nenhuma relatada"}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">Medicações em Uso</p>
+                                    <p className="text-sm text-zinc-700">{patient.medications || "Nenhuma relatada"}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">Motivo da Visita</p>
+                                    <p className="text-sm text-zinc-700 bg-zinc-50 p-3 rounded-xl border border-zinc-100">
+                                        {patient.main_complaint || "Não informado"}
+                                    </p>
+                                </div>
+                                {(patient.emergency_contact_name || patient.emergency_contact_phone) && (
+                                    <div className="pt-2 border-t border-zinc-100 mt-2">
+                                        <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider mb-1">Contato de Emergência</p>
+                                        <p className="text-sm text-zinc-700 font-medium">{patient.emergency_contact_name}</p>
+                                        <p className="text-xs text-zinc-500">{patient.emergency_contact_phone}</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     {/* Right Column: Medical History */}
