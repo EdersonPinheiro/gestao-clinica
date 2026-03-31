@@ -4,6 +4,7 @@ import { LayoutDashboard, Users, Calendar, Settings, Brain, LogOut } from "lucid
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useEffect, useState } from "react";
 
 const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
@@ -19,6 +20,37 @@ interface SidebarProps {
 
 export function Sidebar({ className, onNavigate }: SidebarProps) {
     const pathname = usePathname();
+    const [userName, setUserName] = useState("Carregando...");
+    const [userCrp, setUserCrp] = useState("");
+    const [userInitials, setUserInitials] = useState("");
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            const { createClient } = await import("@/lib/supabase");
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || "Usuário";
+                const prefix = user.user_metadata?.prefix ? `${user.user_metadata.prefix} ` : "";
+                
+                // Formatar o nome se o usuário incluiu um prefixo ou usamos diretamente o nome
+                const displayName = name.includes("Dr") ? name : `${prefix}${name}`;
+                setUserName(displayName);
+                
+                const crp = user.user_metadata?.crp || "";
+                setUserCrp(crp);
+
+                // Pegar as duas primeiras letras para o avatar
+                const initialsMatch = name.match(/\b\w/g);
+                const initials = initialsMatch ? initialsMatch.join('').substring(0, 2).toUpperCase() : name.substring(0, 2).toUpperCase();
+                setUserInitials(initials);
+            } else {
+                setUserName("Usuário");
+                setUserInitials("US");
+            }
+        };
+        fetchUser();
+    }, []);
 
     return (
         <aside className={cn(
@@ -59,14 +91,18 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
 
             <div className="p-4 border-t border-zinc-100">
                 <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-sm">
-                        DR
+                    <div className="h-10 w-10 min-w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold text-sm">
+                        {userInitials}
                     </div>
                     <div className="flex-1 overflow-hidden">
-                        <p className="text-sm font-medium text-zinc-900 truncate">
-                            Dra. Eduarda Angeli
+                        <p className="text-sm font-medium text-zinc-900 truncate" title={userName}>
+                            {userName}
                         </p>
-                        <p className="text-xs text-zinc-500 truncate">CRP 06/12345</p>
+                        {userCrp ? (
+                            <p className="text-xs text-zinc-500 truncate" title={`CRP ${userCrp}`}>CRP {userCrp}</p>
+                        ) : (
+                            <p className="text-xs text-zinc-400 truncate">CRP não inf.</p>
+                        )}
                     </div>
                     <button
                         onClick={async () => {

@@ -9,6 +9,24 @@ import { getMonthlyRevenue } from "@/lib/efipay";
 export default async function Home() {
   const supabase = await createClient();
 
+  // Obter o usuário autenticado
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  // Pegar o nome do usuário (do metadata ou do email)
+  const fullName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Usuário';
+  const firstName = fullName.split(' ')[0];
+  const capitalizedFirstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+
+  // Definir saudação baseada no fuso horário do Brasil
+  const hourStr = new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo", hour: 'numeric', hourCycle: 'h23' });
+  const currentHour = parseInt(hourStr, 10);
+  let greeting = 'Bom dia';
+  if (currentHour >= 12 && currentHour < 18) {
+    greeting = 'Boa tarde';
+  } else if (currentHour >= 18 || currentHour < 5) {
+    greeting = 'Boa noite';
+  }
+
   // 1. Get today's appointments count
   const today = new Date().toISOString().split('T')[0];
   const { count: appointmentsToday } = await supabase
@@ -43,7 +61,7 @@ export default async function Home() {
       <div className="p-4 md:p-8 space-y-8">
         <div>
           <h1 className="text-xl md:text-2xl font-bold text-zinc-900 flex items-center gap-2">
-            Bom dia, Dra. Eduarda<span className="text-2xl">👋</span>
+            {greeting}, {capitalizedFirstName}<span className="text-2xl">👋</span>
           </h1>
           <p className="text-zinc-500 mt-1 text-sm md:text-base">
             Aqui está o resumo do seu dia. Você tem <strong className="text-zinc-900">{appointmentsToday || 0} sessões</strong> agendadas.

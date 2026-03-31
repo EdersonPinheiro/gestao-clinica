@@ -59,13 +59,36 @@ const settingsItems = [
 
 export default function ConfiguracoesPage() {
     const [userEmail, setUserEmail] = useState<string | null>(null);
+    const [userName, setUserName] = useState("Carregando...");
+    const [userCrp, setUserCrp] = useState("");
+    const [userInitials, setUserInitials] = useState("");
 
     useEffect(() => {
         const fetchUser = async () => {
             const supabase = createClient();
             const { data: { user } } = await supabase.auth.getUser();
-            if (user?.email) {
-                setUserEmail(user.email);
+            if (user) {
+                if (user.email) {
+                    setUserEmail(user.email);
+                }
+
+                const name = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || "Usuário";
+                const prefix = user.user_metadata?.prefix ? `${user.user_metadata.prefix} ` : "";
+                
+                // Formatar o nome se o usuário incluiu um prefixo ou usamos diretamente o nome
+                const displayName = name.includes("Dr") ? name : `${prefix}${name}`;
+                setUserName(displayName);
+                
+                const crp = user.user_metadata?.crp || "";
+                setUserCrp(crp);
+
+                // Pegar as duas primeiras letras para o avatar
+                const initialsMatch = name.match(/\b\w/g);
+                const initials = initialsMatch ? initialsMatch.join('').substring(0, 2).toUpperCase() : name.substring(0, 2).toUpperCase();
+                setUserInitials(initials);
+            } else {
+                setUserName("Usuário");
+                setUserInitials("US");
             }
         };
         fetchUser();
@@ -115,13 +138,17 @@ export default function ConfiguracoesPage() {
                     </h2>
                     <div className="flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left">
                         <div className="h-20 w-20 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 text-2xl font-bold">
-                            DR
+                            {userInitials}
                         </div>
                         <div className="flex-1">
                             <h3 className="text-xl font-bold text-zinc-900">
-                                Dra. Eduarda Angeli
+                                {userName}
                             </h3>
-                            <p className="text-zinc-500 font-medium">CRP 06/12345</p>
+                            {userCrp ? (
+                                <p className="text-zinc-500 font-medium">CRP {userCrp}</p>
+                            ) : (
+                                <p className="text-zinc-400 font-medium">CRP não informado</p>
+                            )}
                             <p className="text-zinc-400 text-sm mt-1">
                                 {userEmail || "Carregando email..."}
                             </p>
