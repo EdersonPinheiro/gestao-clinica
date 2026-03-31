@@ -7,7 +7,7 @@ export default function FichaPublica() {
     const [step, setStep] = useState<'form' | 'payment' | 'success'>('form');
     const [loading, setLoading] = useState(false);
     const [paymentData, setPaymentData] = useState<{ qrcode: string; imagemQrcode: string; txid: string; valor: string } | null>(null);
-    const [tempPatientId, setTempPatientId] = useState<string | null>(null);
+    const [tempPatientData, setTempPatientData] = useState<any>(null);
     const [tempAppointment, setTempAppointment] = useState<{ date: string; time: string } | null>(null);
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -45,14 +45,25 @@ export default function FichaPublica() {
             const { createClient } = await import("@/lib/supabase");
             const supabase = createClient();
 
-            if (!tempPatientId || !tempAppointment) throw new Error("Dados perdidos");
+            if (!tempPatientData || !tempAppointment) throw new Error("Dados perdidos");
 
-            // Combine data e hora
+            // 1. Criar o Paciente agora que o pagamento foi confirmado
+            const { data: patientResult, error: patientError } = await supabase
+                .from("patients")
+                .insert(tempPatientData)
+                .select('id')
+                .single();
+
+            if (patientError) throw patientError;
+            const confirmedPatientId = patientResult.id;
+
+            // 2. Combinar data e hora da consulta
             const localDateTime = new Date(`${tempAppointment.date}T${tempAppointment.time}:00`);
             const isoDateTime = localDateTime.toISOString();
 
-            const { error } = await supabase.from("appointments").insert({
-                patient_id: tempPatientId,
+            // 3. Criar Agendamento
+            const { error: appointmentError } = await supabase.from("appointments").insert({
+                patient_id: confirmedPatientId,
                 date_time: isoDateTime,
                 type: 'presencial', // Default or add to form
                 duration_minutes: 50, // Default
@@ -60,12 +71,12 @@ export default function FichaPublica() {
                 notes: "Agendamento via Ficha Pública (Pago)"
             });
 
-            if (error) throw error;
+            if (appointmentError) throw appointmentError;
 
             setStep('success');
-        } catch (error) {
+        } catch (error: any) {
             console.error("Erro ao agendar:", error);
-            alert("Pagamento confirmado, mas erro ao agendar. Entre em contato.");
+            alert("Pagamento confirmado, mas erro: " + (error?.message || error?.details || "Falha ao gravar na agenda."));
         } finally {
             setLoading(false);
         }
@@ -105,14 +116,10 @@ export default function FichaPublica() {
                 main_complaint: formData.get("main_complaint") as string,
             };
 
-            // 1. Create Patient
-            const { data: stringData, error } = await supabase.from("patients").insert(patientData).select('id').single();
-            if (error) throw error;
+            // Salvar no estado para depois (pós-pagamento)
+            setTempPatientData(patientData);
 
-            const newPatientId = stringData.id;
-            setTempPatientId(newPatientId);
-
-            // 2. Generate PIX
+            // 1. Generate PIX direto sem poluir o DB antes da confirmação
             const pixResponse = await fetch('/api/payment/pix', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -134,9 +141,9 @@ export default function FichaPublica() {
                 checkPaymentStatus(pixData.txid);
             }, 3000); // Check every 3 seconds
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert("Erro ao processar. Verifique os dados e tente novamente.");
+            alert("Erro: " + (error?.message || error?.details || "Erro ao processar. Verifique os dados."));
         } finally {
             setLoading(false);
         }
