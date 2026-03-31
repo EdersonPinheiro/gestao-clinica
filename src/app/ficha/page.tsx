@@ -7,8 +7,8 @@ export default function FichaPublica() {
     const [step, setStep] = useState<'form' | 'payment' | 'success'>('form');
     const [loading, setLoading] = useState(false);
     const [paymentData, setPaymentData] = useState<{ qrcode: string; imagemQrcode: string; txid: string; valor: string } | null>(null);
-    const [tempPatientData, setTempPatientData] = useState<any>(null);
-    const [tempAppointment, setTempAppointment] = useState<{ date: string; time: string } | null>(null);
+    const tempPatientDataRef = useRef<any>(null);
+    const tempAppointmentRef = useRef<{ date: string; time: string } | null>(null);
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
     // Clean up polling on unmount
@@ -45,12 +45,15 @@ export default function FichaPublica() {
             const { createClient } = await import("@/lib/supabase");
             const supabase = createClient();
 
-            if (!tempPatientData || !tempAppointment) throw new Error("Dados perdidos");
+            const patientData = tempPatientDataRef.current;
+            const appointmentData = tempAppointmentRef.current;
+
+            if (!patientData || !appointmentData) throw new Error("Dados perdidos");
 
             // 1. Criar o Paciente agora que o pagamento foi confirmado
             const { data: patientResult, error: patientError } = await supabase
                 .from("patients")
-                .insert(tempPatientData)
+                .insert(patientData)
                 .select('id')
                 .single();
 
@@ -58,7 +61,7 @@ export default function FichaPublica() {
             const confirmedPatientId = patientResult.id;
 
             // 2. Combinar data e hora da consulta
-            const localDateTime = new Date(`${tempAppointment.date}T${tempAppointment.time}:00`);
+            const localDateTime = new Date(`${appointmentData.date}T${appointmentData.time}:00`);
             const isoDateTime = localDateTime.toISOString();
 
             // 3. Criar Agendamento
@@ -91,7 +94,7 @@ export default function FichaPublica() {
         // Capture appointment data
         const appointmentDate = formData.get("appointment_date") as string;
         const appointmentTime = formData.get("appointment_time") as string;
-        setTempAppointment({ date: appointmentDate, time: appointmentTime });
+        tempAppointmentRef.current = { date: appointmentDate, time: appointmentTime };
 
         try {
             const { createClient } = await import("@/lib/supabase");
@@ -116,8 +119,8 @@ export default function FichaPublica() {
                 main_complaint: formData.get("main_complaint") as string,
             };
 
-            // Salvar no estado para depois (pós-pagamento)
-            setTempPatientData(patientData);
+            // Salvar no estado para depois (pós-pagamento) usando Ref para o setInterval sempre enxergar a versão nova
+            tempPatientDataRef.current = patientData;
 
             // 1. Generate PIX direto sem poluir o DB antes da confirmação
             const pixResponse = await fetch('/api/payment/pix', {
