@@ -34,9 +34,10 @@ export async function middleware(request: NextRequest) {
 
   const isLoginPage = request.nextUrl.pathname.startsWith('/login')
   const isApiRoute = request.nextUrl.pathname.startsWith('/api')
+  const isFichaRoute = request.nextUrl.pathname.startsWith('/ficha')
 
-  // Se o usuário não estiver autenticado e não estiver na rota de login ou em rotas da API, redireciona para /login
-  if (!user && !isLoginPage && !isApiRoute) {
+  // Se o usuário não estiver autenticado e não estiver na rota de login ou em rotas da API ou Ficha, redireciona para /login
+  if (!user && !isLoginPage && !isApiRoute && !isFichaRoute) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = '/login'
     return NextResponse.redirect(loginUrl)
